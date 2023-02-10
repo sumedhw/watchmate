@@ -16,13 +16,13 @@ class MovieListAV(APIView):
         serializer = MovieSerializer(movies, many=True)
         return Response(serializer.data)
     
-    def post(self, request, pk):
+    def post(self, request):
         serializer = MovieSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
         else:
-            return Response(serializer.data)
+            return Response(serializer.errors)
 
 
 class MovieDetailAV(APIView):
