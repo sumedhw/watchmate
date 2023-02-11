@@ -3,12 +3,63 @@ from rest_framework import status
 from django.http import JsonResponse
 #from rest_framework.decorators import api_view
 from rest_framework.views import APIView
+from rest_framework import generics, mixins
 
 #from watchmate_app.models import Movie
-from watchmate_app.models import StreamPlatform, WatchList
+from watchmate_app.models import StreamPlatform, WatchList, Review
 #from .serializers import MovieSerializer
 
-from .serializers import WatchListSerializer, StreamPlatformSerializer
+from .serializers import ( WatchListSerializer, StreamPlatformSerializer, 
+                        ReviewSerializer )
+
+
+class ReviewCreate(generics.CreateAPIView):
+    serializer_class = ReviewSerializer
+
+    def perform_create(self, serializer):
+        pk = self.kwargs.get('pk')
+        movie  = WatchList.objects.get(pk=pk)
+
+        serializer.save(watchlist=movie)
+        
+
+
+class ReviewList(generics.ListAPIView):
+    #queryset = Review.objects.all()
+    serializer_class = ReviewSerializer
+
+    def get_queryset(self):
+        pk = self.kwargs['pk']
+        return Review.objects.filter(watchlist=pk)
+
+
+class ReviewDetail(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Review.objects.all()
+    serializer_class = ReviewSerializer
+
+
+
+# class ReviewDetail(mixins.RetrieveModelMixin, generics.GenericAPIView):
+#     queryset = Review.objects.all()
+#     serializer_class = ReviewSerializer
+
+#     def get(self, request, *args, **kwargs):
+#         return self.retrieve(request, *args, **kwargs)
+
+
+# class ReviewList(mixins.ListModelMixin,
+#                   mixins.CreateModelMixin,
+#                   generics.GenericAPIView):
+#     queryset = Review.objects.all()
+#     serializer_class = ReviewSerializer
+
+#     def get(self, request, *args, **kwargs):
+#         return self.list(request, *args, **kwargs)
+
+#     def post(self, request, *args, **kwargs):
+#         return self.create(request, *args, **kwargs)
+
+
 
 
 # class based views

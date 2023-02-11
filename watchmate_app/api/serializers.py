@@ -1,9 +1,17 @@
 from rest_framework import serializers
 #from watchmate_app.models import Movie
-from watchmate_app.models import WatchList, StreamPlatform
+from watchmate_app.models import WatchList, StreamPlatform, Review
+
+
+class ReviewSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Review
+        #fields = "__all__"
+        exclude = ('watchlist',)
 
 
 class WatchListSerializer(serializers.ModelSerializer):
+    reviews = ReviewSerializer(many=True, read_only=True)
     len_title = serializers.SerializerMethodField()
 
     class Meta:
