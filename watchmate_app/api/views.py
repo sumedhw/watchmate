@@ -1,6 +1,8 @@
 from rest_framework.response import Response
 from rest_framework import status
 from django.http import JsonResponse
+from rest_framework.exceptions import ValidationError
+from rest_framework.permissions import IsAuthenticated
 #from rest_framework.decorators import api_view
 from rest_framework.views import APIView
 from rest_framework import generics, mixins
@@ -9,6 +11,8 @@ from rest_framework import generics, mixins
 from watchmate_app.models import StreamPlatform, WatchList, Review
 #from .serializers import MovieSerializer
 
+from .permissions import AdminOrReadOnly, ReviewUserOrReadOnly
+
 from .serializers import ( WatchListSerializer, StreamPlatformSerializer, 
                         ReviewSerializer )
 
@@ -16,17 +20,27 @@ from .serializers import ( WatchListSerializer, StreamPlatformSerializer,
 class ReviewCreate(generics.CreateAPIView):
     serializer_class = ReviewSerializer
 
+    def get_queryset(self):
+        return Review.objects.all()
+
     def perform_create(self, serializer):
         pk = self.kwargs.get('pk')
-        movie  = WatchList.objects.get(pk=pk)
+        watchlist  = WatchList.objects.get(pk=pk)
 
-        serializer.save(watchlist=movie)
+        user = self.request.user
+        review_queryset = Review.objects.filter(watchlist=watchlist, user=user)
+
+        if review_queryset.exists():
+            raise ValidationError("You have already reviewed this movie")
+
+        serializer.save(watchlist=watchlist, user=user)
         
 
 
 class ReviewList(generics.ListAPIView):
     #queryset = Review.objects.all()
     serializer_class = ReviewSerializer
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         pk = self.kwargs['pk']
@@ -36,6 +50,7 @@ class ReviewList(generics.ListAPIView):
 class ReviewDetail(generics.RetrieveUpdateDestroyAPIView):
     queryset = Review.objects.all()
     serializer_class = ReviewSerializer
+    permission_classes = [ReviewUserOrReadOnly]
 
 
 
@@ -129,7 +144,7 @@ class StreamPlatformDetailAV(APIView):
             platform = StreamPlatform.objects.get(pk=pk)
         except StreamPlatform.DoesNotExist:
             return Response({"Message":"Stream Platform not found"}, status=status.HTTP_404_NOT_FOUND)
-        serializer = StreamPlatformSerializer(platform)
+        serializer = StreamPlatformSerializer(platform,context={'request': request})
         return Response(serializer.data)
 
     def put(self, request, pk):
