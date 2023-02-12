@@ -17,6 +17,8 @@ from .serializers import ( WatchListSerializer, StreamPlatformSerializer,
                         ReviewSerializer )
 
 
+# class based views
+
 class ReviewCreate(generics.CreateAPIView):
     serializer_class = ReviewSerializer
 
@@ -32,6 +34,14 @@ class ReviewCreate(generics.CreateAPIView):
 
         if review_queryset.exists():
             raise ValidationError("You have already reviewed this movie")
+
+        if watchlist.number_rating == 0:
+            watchlist.avg_rating = serializer.validated_data['rating']
+        else:
+            watchlist.avg_rating = (serializer.avg_rating + serializer.validated_data['rating']) / 2
+
+        watchlist.number_rating = watchlist.number_rating + 1
+        watchlist.save()
 
         serializer.save(watchlist=watchlist, user=user)
         
@@ -77,7 +87,7 @@ class ReviewDetail(generics.RetrieveUpdateDestroyAPIView):
 
 
 
-# class based views
+
 class WatchListListAV(APIView):
 
     def get(self, request):
